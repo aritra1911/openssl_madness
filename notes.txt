@@ -1,0 +1,17 @@
+# Generate private key
+$ openssl genrsa -out key.pem 4096
+Generating RSA private key, 4096 bit long modulus (2 primes)
+............................................................................................................................................++++
+.................................++++
+
+
+# Extract public key
+$ openssl rsa -in key.pem -out pubkey.pem -pubout
+writing RSA key
+
+
+
+# Encrypt / Decrypt
+$ openssl rsautl -inkey pubkey.pem -encrypt -pubin <<< "Hello, World!" | openssl rsautl -inkey key.pem -decrypt
+Hello, World!
+
