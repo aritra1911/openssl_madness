@@ -15,3 +15,13 @@ writing RSA key
 $ openssl rsautl -inkey pubkey.pem -encrypt -pubin <<< "Hello, World!" | openssl rsautl -inkey key.pem -decrypt
 Hello, World!
 
+
+# OpenSSL PEM_read_RSA_PUBKEY vs PEM_read_RSAPublicKey
+# https://false.ekta.is/2011/08/openssl-pem_read_rsa_pubkey-vs-pem_read_rsapublickey/
+    The RSAPublicKey functions process an RSA public key using an RSA structure. The public key is encoded using a PKCS#1 RSAPublicKey structure.
+
+    The RSA_PUBKEY functions also process an RSA public key using an RSA structure. However the public key is encoded using a SubjectPublicKeyInfo
+    structure and an error occurs if the public key is not RSA.
+
+    I’ve got no idea where the PKCS#1 vs SubjectPublicKeyInfo comes into it when I’m just trying to load that file. Regardless, the only one that
+    works is PEM_read_RSA_PUBKEY()

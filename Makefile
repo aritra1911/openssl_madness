@@ -3,3 +3,6 @@ all: madness.c
 
 debug: madness.c
 	$(CC) -g madness.c -o madness -lcrypto
+
+clean:
+	$(RM) madness
