@@ -25,11 +25,11 @@ int main(void) {
     printf("Public key size = %d\n", RSA_bits(public_key));
 
     // RSA ENCRYPTION //////////////////////////
-    //fpin = fopen("message.txt", "r");
-    //fpout = fopen("encrypted_message.txt", "w");
-    //rsa_encrypt(public_key, fpin, fpout);
-    //fclose(fpin);
-    //fclose(fpout);
+    fpin = fopen("message.txt", "r");
+    fpout = fopen("encrypted_message.txt", "w");
+    rsa_encrypt(public_key, fpin, fpout);
+    fclose(fpin);
+    fclose(fpout);
     ////////////////////////////////////////////
 
     // RSA DECRYPTION //////////////////////////
@@ -58,7 +58,10 @@ int rsa_encrypt(RSA* public_key, FILE* infile, FILE* outfile) {
         // Read blocks of data from `infile' and encrypt them and write them out to `outfile', one block at a time.
         // Each block is at most (`key_size' - 42) bytes long. Do this in a loop until eof(infile) is encountered.
 
-        len = fread(buf, 1, key_size - 42, infile);
+        // Quoting from man page of FREAD(3):
+        // "If the end of the file is reached, the return value is a short item count (or zero)"
+        // Hence, if 0 bytes were read, that's definitely an EOF, implying that we must stop
+        if (!(len = fread(buf, 1, key_size - 42, infile))) break;
         printf("%u bytes read for encryption\n", len);
 
         if ((len = RSA_public_encrypt(len, buf, encbuf, public_key, RSA_PKCS1_OAEP_PADDING)) != key_size) {
