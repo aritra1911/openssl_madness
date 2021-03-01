@@ -1,8 +1,16 @@
-	The wise programmer is told about the Tao and follows it.  The average
-programmer is told about the Tao and searches for it.  The foolish programmer
-is told about the Tao and laughs at it.  If it were not for laughter, there
-would be no Tao.
-	The highest sounds are the hardest to hear.  Going forward is a way to
-retreat.  Greater talent shows itself late in life.  Even a perfect program
-still has bugs.
-		-- Geoffrey James, "The Tao of Programming"
+Our congratulations go to a Burlington Vermont civilian employee of the
+local Army National Guard base.  He recently received a substational cash
+award from our government for inventing a device for optical scanning.
+His device reportedly will save the government more than $6 million a year
+by replacing a more expensive helicopter maintenance tool with his own,
+home-made, hand-held model.
+
+Not surprisingly, we also have a couple of money-saving ideas that we submit
+to the Pentagon free of charge:
+
+	(a) Don't kill anybody.
+	(b) Don't build things that do.
+	(c) And don't pay other people to kill anybody.
+
+We expect annual savings to be in the billions.
+		-- Sojourners
