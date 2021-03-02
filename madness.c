@@ -1,49 +1,82 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <getopt.h>
 #include <openssl/pem.h>
+#include <openssl/rsa.h>
 #include <openssl/err.h>
 
-int rsa_encrypt(RSA*, FILE*, FILE*);
-int rsa_decrypt(RSA*, FILE*, FILE*);
+int rsa_encrypt(RSA*, FILE*, FILE*, const int);
+int rsa_decrypt(RSA*, FILE*, FILE*, const int);
 
-int main(void) {
-    RSA* private_key = NULL;
-    RSA* public_key = NULL;
+int main(int argc, char* argv[]) {
+    RSA *private_key = NULL, *public_key = NULL;
     FILE *fp, *fpin, *fpout;
+    char *input_filename = NULL, *key_filename = NULL, *output_filename = NULL;
+    int decrypt = 0, verbose = 0;
 
-    // FETCH KEY PAIR ///////////////////////////////////
-    fp = fopen("key.pem", "r");
-    PEM_read_RSAPrivateKey(fp, &private_key, NULL, NULL);
+    while (1) {
+        int option_index = 0;
+        static struct option long_options[] = {
+            { "infile",  required_argument, NULL, 'i' },
+            { "keyfile", required_argument, NULL, 'k' },
+            { "decrypt", no_argument,       NULL, 'd' },
+            { "verbose", no_argument,       NULL, 'v' },
+            { "outfile", required_argument, NULL, 'o' },
+            { NULL,      0,                 NULL,  0  }
+        };
+
+        int c;
+        if ((c = getopt_long(argc, argv, "i:k:dvo:", long_options, &option_index)) == -1) break;
+
+        switch (c) {
+            case 0: break;
+            case 'i': input_filename = optarg; break;
+            case 'k': key_filename = optarg; break;
+            case 'd': decrypt = 1; break;
+            case 'v': verbose = 1; break;
+            case 'o': output_filename = optarg; break;
+            case '?': break;
+            default: return 1;
+        }
+    }
+
+    if (optind < argc) {
+        fprintf(stderr, "Unrecognized option %s, rest of the line ignored.\n", argv[optind]);
+        return 1;
+    }
+
+    fp = fopen(key_filename, "r");
+    if (!decrypt) {
+        PEM_read_RSA_PUBKEY(fp, &public_key, NULL, NULL);
+        if (verbose) printf("RSA %d\n", RSA_bits(public_key));
+    } else {
+        PEM_read_RSAPrivateKey(fp, &private_key, NULL, NULL);
+        if (verbose) printf("RSA %d\n", RSA_bits(private_key));
+    }
     fclose(fp);
 
-    fp = fopen("pubkey.pem", "r");
-    PEM_read_RSA_PUBKEY(fp, &public_key, NULL, NULL);
-    fclose(fp);
-    /////////////////////////////////////////////////////
+    if (!input_filename || input_filename[0] == '-')
+        fpin = stdin;
+    else
+        fpin = fopen(input_filename, "r");
 
-    // Print key sizes, thus verifying their successful read
-    printf("Private key size = %d\n", RSA_bits(private_key));
-    printf("Public key size = %d\n", RSA_bits(public_key));
+    if (!output_filename || output_filename[0] == '-')
+        fpout = stdout;
+    else
+        fpout = fopen(output_filename, "w");
 
-    // RSA ENCRYPTION //////////////////////////
-    fpin = fopen("message.txt", "r");
-    fpout = fopen("encrypted_message.txt", "w");
-    rsa_encrypt(public_key, fpin, fpout);
-    fclose(fpin);
-    fclose(fpout);
-    ////////////////////////////////////////////
+    if (!decrypt)
+        rsa_encrypt(public_key, fpin, fpout, verbose);
+    else
+        rsa_decrypt(private_key, fpin, fpout, verbose);
 
-    // RSA DECRYPTION //////////////////////////
-    fpin = fopen("encrypted_message.txt", "r");
-    fpout = fopen("decrypted_message.txt", "w");
-    rsa_decrypt(private_key, fpin, fpout);
-    fclose(fpin);
-    fclose(fpout);
-    ////////////////////////////////////////////
+    if (fpin != stdin) fclose(fpin);
+    if (fpout != stdout) fclose(fpout);
 
     return 0;
 }
 
-int rsa_encrypt(RSA* public_key, FILE* infile, FILE* outfile) {
+int rsa_encrypt(RSA* public_key, FILE* infile, FILE* outfile, const int verbose) {
     int key_size = RSA_size(public_key);
     char *buf, *encbuf;
     size_t len;
@@ -62,7 +95,7 @@ int rsa_encrypt(RSA* public_key, FILE* infile, FILE* outfile) {
         // "If the end of the file is reached, the return value is a short item count (or zero)"
         // Hence, if 0 bytes were read, that's definitely an EOF, implying that we must stop
         if (!(len = fread(buf, 1, key_size - 42, infile))) break;
-        printf("%u bytes read for encryption\n", len);
+        if (verbose) printf("%u bytes read for encryption\n", len);
 
         if ((len = RSA_public_encrypt(len, buf, encbuf, public_key, RSA_PKCS1_OAEP_PADDING)) != key_size) {
             ERR_print_errors_fp(stderr);
@@ -70,11 +103,11 @@ int rsa_encrypt(RSA* public_key, FILE* infile, FILE* outfile) {
             free(encbuf);
             return -1;
         }
-        printf("%u bytes encrypted\n", len);
+        if (verbose) printf("%u bytes encrypted\n", len);
 
         // Write it to outfile
         len = fwrite(encbuf, 1, len, outfile);
-        printf("%u bytes written\n", len);
+        if (verbose) printf("%u bytes written\n", len);
 
     } while (!feof(infile));
 
@@ -84,7 +117,7 @@ int rsa_encrypt(RSA* public_key, FILE* infile, FILE* outfile) {
     return 0;
 }
 
-int rsa_decrypt(RSA* private_key, FILE* infile, FILE* outfile) {
+int rsa_decrypt(RSA* private_key, FILE* infile, FILE* outfile, const int verbose) {
     int key_size = RSA_size(private_key);
     char *buf, *decbuf;
     size_t len;
@@ -104,7 +137,7 @@ int rsa_decrypt(RSA* private_key, FILE* infile, FILE* outfile) {
         // "If the end of the file is reached, the return value is a short item count (or zero)"
         // Hence, if 0 bytes were read, that's definitely an EOF, implying that we must stop
         if (!(len = fread(buf, 1, key_size, infile))) break;
-        printf("%u bytes read for decryption\n", len);
+        if (verbose) printf("%u bytes read for decryption\n", len);
 
         if ((len = RSA_private_decrypt(len, buf, decbuf, private_key, RSA_PKCS1_OAEP_PADDING)) == -1) {
             ERR_print_errors_fp(stderr);
@@ -112,11 +145,11 @@ int rsa_decrypt(RSA* private_key, FILE* infile, FILE* outfile) {
             free(decbuf);
             return -1;
         }
-        printf("%u bytes decrypted\n", len);
+        if (verbose) printf("%u bytes decrypted\n", len);
 
         // Write it to outfile
         len = fwrite(decbuf, 1, len, outfile);
-        printf("%u bytes written\n", len);
+        if (verbose) printf("%u bytes written\n", len);
 
     } while (!feof(infile));
 
