@@ -77,9 +77,9 @@ int main(int argc, char* argv[]) {
 }
 
 int rsa_encrypt(RSA* public_key, FILE* infile, FILE* outfile, const int verbose) {
-    int key_size = RSA_size(public_key);
+    int len, key_size = RSA_size(public_key);
     char *buf, *encbuf;
-    size_t len;
+    size_t flen;
 
     // Quoting from man page of RSA_PUBLIC_ENCRYPT(3):
     // "flen must not be more than RSA_size(rsa) - 42 for RSA_PKCS1_OAEP_PADDING"
@@ -94,20 +94,21 @@ int rsa_encrypt(RSA* public_key, FILE* infile, FILE* outfile, const int verbose)
         // Quoting from man page of FREAD(3):
         // "If the end of the file is reached, the return value is a short item count (or zero)"
         // Hence, if 0 bytes were read, that's definitely an EOF, implying that we must stop
-        if (!(len = fread(buf, 1, key_size - 42, infile))) break;
-        if (verbose) printf("%u bytes read for encryption\n", len);
+        if (!(flen = fread(buf, 1, key_size - 42, infile))) break;
+        if (verbose) printf("%lu bytes read for encryption\n", flen);
 
-        if ((len = RSA_public_encrypt(len, buf, encbuf, public_key, RSA_PKCS1_OAEP_PADDING)) != key_size) {
+        if ((len = RSA_public_encrypt(flen, (unsigned char*) buf, (unsigned char*) encbuf,
+                                      public_key, RSA_PKCS1_OAEP_PADDING)) != key_size) {
             ERR_print_errors_fp(stderr);
             free(buf);
             free(encbuf);
             return -1;
         }
-        if (verbose) printf("%u bytes encrypted\n", len);
+        if (verbose) printf("%d bytes encrypted\n", len);
 
         // Write it to outfile
-        len = fwrite(encbuf, 1, len, outfile);
-        if (verbose) printf("%u bytes written\n", len);
+        flen = fwrite(encbuf, 1, len, outfile);
+        if (verbose) printf("%lu bytes written\n", flen);
 
     } while (!feof(infile));
 
@@ -118,9 +119,9 @@ int rsa_encrypt(RSA* public_key, FILE* infile, FILE* outfile, const int verbose)
 }
 
 int rsa_decrypt(RSA* private_key, FILE* infile, FILE* outfile, const int verbose) {
-    int key_size = RSA_size(private_key);
+    int len, key_size = RSA_size(private_key);
     char *buf, *decbuf;
-    size_t len;
+    size_t flen;
 
     // Encrypted blocks come in `key_size' bytes each
     buf = malloc(key_size);
@@ -136,20 +137,21 @@ int rsa_decrypt(RSA* private_key, FILE* infile, FILE* outfile, const int verbose
         // Quoting from man page of FREAD(3):
         // "If the end of the file is reached, the return value is a short item count (or zero)"
         // Hence, if 0 bytes were read, that's definitely an EOF, implying that we must stop
-        if (!(len = fread(buf, 1, key_size, infile))) break;
-        if (verbose) printf("%u bytes read for decryption\n", len);
+        if (!(flen = fread(buf, 1, key_size, infile))) break;
+        if (verbose) printf("%lu bytes read for decryption\n", flen);
 
-        if ((len = RSA_private_decrypt(len, buf, decbuf, private_key, RSA_PKCS1_OAEP_PADDING)) == -1) {
+        if ((len = RSA_private_decrypt(flen, (unsigned char*) buf, (unsigned char*) decbuf,
+                                       private_key, RSA_PKCS1_OAEP_PADDING)) == -1) {
             ERR_print_errors_fp(stderr);
             free(buf);
             free(decbuf);
             return -1;
         }
-        if (verbose) printf("%u bytes decrypted\n", len);
+        if (verbose) printf("%d bytes decrypted\n", len);
 
         // Write it to outfile
-        len = fwrite(decbuf, 1, len, outfile);
-        if (verbose) printf("%u bytes written\n", len);
+        flen = fwrite(decbuf, 1, len, outfile);
+        if (verbose) printf("%lu bytes written\n", flen);
 
     } while (!feof(infile));
 
