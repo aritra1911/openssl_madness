@@ -1,8 +1,14 @@
-all: madness.c
-	$(CC) madness.c -o madness -lcrypto
+CFLAGS = -Wall -Wextra -pedantic -std=c99
+LIBS = -lcrypto
+
+madness: madness.o
+	$(CC) $^ -o $@ $(LIBS)
+
+madness.o: madness.c
+	$(CC) $(CFLAGS) -c $^ -o $@
 
 debug: madness.c
-	$(CC) -g madness.c -o madness -lcrypto
+	$(CC) $(CFLAGS) -g madness.c -o madness -lcrypto
 
 clean:
-	$(RM) madness
+	$(RM) *.o madness
