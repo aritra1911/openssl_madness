@@ -8,7 +8,7 @@ madness.o: madness.c
 	$(CC) $(CFLAGS) -c $^ -o $@
 
 debug: madness.c
-	$(CC) $(CFLAGS) -g madness.c -o madness -lcrypto
+	$(CC) $(CFLAGS) -g $^ -o madness $(LIBS)
 
 clean:
 	$(RM) *.o madness

@@ -7,12 +7,41 @@
 
 int rsa_encrypt(RSA*, FILE*, FILE*, const int);
 int rsa_decrypt(RSA*, FILE*, FILE*, const int);
+void print_usage(const char*);
+
+void print_usage(const char* bin) {
+    printf("Usage : %s [-i FILE] -k PEM_FILE [-d] [-o FILE] [-v]\n"
+           "RSA Encryption / Decryption Tool using OpenSSL API\n\n"
+
+           "    -h, --help        Show this help and exit\n\n"
+
+           "    -i, --infile      Specify file to be read for data. When omitted, stdin will be used by default.\n\n"
+
+           "    -k, --keyfile     Specify public / private key file in PEM format. If --decrypt flag is set, the\n"
+           "                      specified key is treated as a private key, otherwise the same is treated as a public\n"
+           "                      key.\n\n"
+
+           "    -o, --outfile     Specify file to write data to. When omitted, stdout will be used by default.\n\n"
+
+           "    -d, --decrypt     Signify decryption operation to be performed on read data with value of --keyfile\n"
+           "                      treated as the private key. When omitted, encryption operation will be performed by\n"
+           "                      default on the same read data and value of --keyfile is treated as the public key.\n\n"
+
+           "    -v, --verbose     Show RSA size, blocks of data read, encrypted / decrypted, written.\n", bin);
+}
 
 int main(int argc, char* argv[]) {
     RSA *private_key = NULL, *public_key = NULL;
     FILE *fp, *fpin, *fpout;
     char *input_filename = NULL, *key_filename = NULL, *output_filename = NULL;
     int decrypt = 0, verbose = 0;
+
+    if (argc < 2) {
+        fprintf(stderr, "No arguments supplied\n");
+        putchar('\n');
+        print_usage(argv[0]);
+        return EXIT_FAILURE;
+    }
 
     while (1) {
         int option_index = 0;
@@ -22,27 +51,45 @@ int main(int argc, char* argv[]) {
             { "decrypt", no_argument,       NULL, 'd' },
             { "verbose", no_argument,       NULL, 'v' },
             { "outfile", required_argument, NULL, 'o' },
+            { "help",    no_argument,       NULL, 'h' },
             { NULL,      0,                 NULL,  0  }
         };
 
         int c;
-        if ((c = getopt_long(argc, argv, "i:k:dvo:", long_options, &option_index)) == -1) break;
+        if ((c = getopt_long(argc, argv, "i:k:dvo:h", long_options, &option_index)) == -1) break;
 
         switch (c) {
             case 0: break;
             case 'i': input_filename = optarg; break;
             case 'k': key_filename = optarg; break;
-            case 'd': decrypt = 1; break;
+            case 'd': decrypt = 1; break;  // TODO: Enforce the mention of either `--encrypt' or `--decrypt'
+                                           // i.e. treating encryption by default may be ambiguous to the user.
             case 'v': verbose = 1; break;
             case 'o': output_filename = optarg; break;
+
+            case 'h':
+                print_usage(argv[0]);
+                return EXIT_SUCCESS;
+
             case '?': break;
             default: return 1;
         }
     }
 
+    // If any other argument supplied, report an error since it's not clear what the user is trying to do
     if (optind < argc) {
-        fprintf(stderr, "Unrecognized option %s, rest of the line ignored.\n", argv[optind]);
-        return 1;
+        fprintf(stderr, "Unrecognized option %s\n", argv[optind]);
+        putchar('\n');
+        print_usage(argv[0]);
+        return EXIT_FAILURE;
+    }
+
+    // --keyfile is not optional
+    if (!key_filename) {
+        fprintf(stderr, "What key to use?\nSpecify a PEM formatted file using `--keyfile'\n");
+        putchar('\n');
+        print_usage(argv[0]);
+        return EXIT_FAILURE;
     }
 
     fp = fopen(key_filename, "r");
@@ -73,7 +120,7 @@ int main(int argc, char* argv[]) {
     if (fpin != stdin) fclose(fpin);
     if (fpout != stdout) fclose(fpout);
 
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 int rsa_encrypt(RSA* public_key, FILE* infile, FILE* outfile, const int verbose) {
