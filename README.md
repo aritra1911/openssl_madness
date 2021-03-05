@@ -13,22 +13,24 @@ $ make
 
 ## Usage
 ```
-Usage : ./madness [-i FILE] -k PEM_FILE [-d] [-o FILE] [-v]
+Usage : ./madness [-i FILE] -k PEM_FILE -(e|d) [-o FILE] [-v]
 RSA Encryption / Decryption Tool using OpenSSL API
 
     -h, --help        Show this help and exit
 
     -i, --infile      Specify file to be read for data. When omitted, stdin will be used by default.
 
-    -k, --keyfile     Specify public / private key file in PEM format. If --decrypt flag is set, the
+    -k, --keyfile     Specify public / private key file in PEM format. If --decrypt flag is specified, the
                       specified key is treated as a private key, otherwise the same is treated as a public
-                      key.
+                      key when --encrypt is specified.
 
     -o, --outfile     Specify file to write data to. When omitted, stdout will be used by default.
 
-    -d, --decrypt     Signify decryption operation to be performed on read data with value of --keyfile
-                      treated as the private key. When omitted, encryption operation will be performed by
-                      default on the same read data and value of --keyfile is treated as the public key.
+    -e, --encrypt     Specify encryption operation to be performed on the read data with value of --keyfile
+                      treated as the public key.
+
+    -d, --decrypt     Signify decryption operation to be performed on the read data with value of --keyfile
+                      treated as the private key.
 
     -v, --verbose     Show RSA size, blocks of data read, encrypted / decrypted, written.
 ```

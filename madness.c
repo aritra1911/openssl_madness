@@ -10,22 +10,24 @@ int rsa_decrypt(RSA*, FILE*, FILE*, const int);
 void print_usage(const char*);
 
 void print_usage(const char* bin) {
-    printf("Usage : %s [-i FILE] -k PEM_FILE [-d] [-o FILE] [-v]\n"
+    printf("Usage : %s [-i FILE] -k PEM_FILE -(e|d) [-o FILE] [-v]\n"
            "RSA Encryption / Decryption Tool using OpenSSL API\n\n"
 
            "    -h, --help        Show this help and exit\n\n"
 
            "    -i, --infile      Specify file to be read for data. When omitted, stdin will be used by default.\n\n"
 
-           "    -k, --keyfile     Specify public / private key file in PEM format. If --decrypt flag is set, the\n"
+           "    -k, --keyfile     Specify public / private key file in PEM format. If --decrypt flag is specified, the\n"
            "                      specified key is treated as a private key, otherwise the same is treated as a public\n"
-           "                      key.\n\n"
+           "                      key when --encrypt is specified.\n\n"
 
            "    -o, --outfile     Specify file to write data to. When omitted, stdout will be used by default.\n\n"
 
-           "    -d, --decrypt     Signify decryption operation to be performed on read data with value of --keyfile\n"
-           "                      treated as the private key. When omitted, encryption operation will be performed by\n"
-           "                      default on the same read data and value of --keyfile is treated as the public key.\n\n"
+           "    -e, --encrypt     Specify encryption operation to be performed on the read data with value of --keyfile\n"
+           "                      treated as the public key.\n\n"
+
+           "    -d, --decrypt     Signify decryption operation to be performed on the read data with value of --keyfile\n"
+           "                      treated as the private key.\n\n"
 
            "    -v, --verbose     Show RSA size, blocks of data read, encrypted / decrypted, written.\n", bin);
 }
@@ -34,7 +36,7 @@ int main(int argc, char* argv[]) {
     RSA *private_key = NULL, *public_key = NULL;
     FILE *fp, *fpin, *fpout;
     char *input_filename = NULL, *key_filename = NULL, *output_filename = NULL;
-    int decrypt = 0, verbose = 0;
+    int decrypt = -1, verbose = 0;
 
     if (argc < 2) {
         fprintf(stderr, "No arguments supplied\n");
@@ -48,6 +50,7 @@ int main(int argc, char* argv[]) {
         static struct option long_options[] = {
             { "infile",  required_argument, NULL, 'i' },
             { "keyfile", required_argument, NULL, 'k' },
+            { "encrypt", no_argument,       NULL, 'e' },
             { "decrypt", no_argument,       NULL, 'd' },
             { "verbose", no_argument,       NULL, 'v' },
             { "outfile", required_argument, NULL, 'o' },
@@ -56,14 +59,35 @@ int main(int argc, char* argv[]) {
         };
 
         int c;
-        if ((c = getopt_long(argc, argv, "i:k:dvo:h", long_options, &option_index)) == -1) break;
+        if ((c = getopt_long(argc, argv, "i:k:edvo:h", long_options, &option_index)) == -1) break;
 
         switch (c) {
             case 0: break;
             case 'i': input_filename = optarg; break;
             case 'k': key_filename = optarg; break;
-            case 'd': decrypt = 1; break;  // TODO: Enforce the mention of either `--encrypt' or `--decrypt'
-                                           // i.e. treating encryption by default may be ambiguous to the user.
+
+            case 'e':
+                if (decrypt == 1) {
+                    // Only way to end up here is iff `--decrypt' && `--encrypt' are specified together
+                    fprintf(stderr, "How the hell do you decrypt & encrypt at the same time?\n"
+                                    "Specify either `--decrypt' or `--encrypt', not both\n");
+                    putchar('\n');
+                    print_usage(argv[0]);
+                    return EXIT_FAILURE;
+                }
+                decrypt = 0; break;
+
+            case 'd':
+                if (decrypt == 0) {
+                    // Only way to end up here is iff `--encrypt' && `--decrypt' are specified together
+                    fprintf(stderr, "How the hell do you encrypt & decrypt at the same time?\n"
+                                    "Specify either `--encrypt' or `--decrypt', not both\n");
+                    putchar('\n');
+                    print_usage(argv[0]);
+                    return EXIT_FAILURE;
+                }
+                decrypt = 1; break;
+
             case 'v': verbose = 1; break;
             case 'o': output_filename = optarg; break;
 
@@ -87,6 +111,14 @@ int main(int argc, char* argv[]) {
     // --keyfile is not optional
     if (!key_filename) {
         fprintf(stderr, "What key to use?\nSpecify a PEM formatted file using `--keyfile'\n");
+        putchar('\n');
+        print_usage(argv[0]);
+        return EXIT_FAILURE;
+    }
+
+    // Either `--encrypt' or `--decrypt' MUST be specified
+    if (decrypt == -1) {
+        fprintf(stderr, "Tell me what to do?\nSpecify whether to `--encrypt' or `--decrypt'\n");
         putchar('\n');
         print_usage(argv[0]);
         return EXIT_FAILURE;
