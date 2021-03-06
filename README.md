@@ -52,4 +52,4 @@ RSA Encryption / Decryption Tool using OpenSSL API
     - GETOPT(3)
     - ERRNO(3P)
     - STRERROR(3P)
-3.  https://false.ekta.is/2011/08/openssl-pem\_read\_rsa\_pubkey-vs-pem\_read\_rsapublickey/
+3.  https://false.ekta.is/2011/08/openssl-pem_read_rsa_pubkey-vs-pem_read_rsapublickey/
