@@ -188,16 +188,18 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    int ret_status = 0;  // Track return value of rsa_encrypt() or rsa_decrypt()
     if (!decrypt)
-        rsa_encrypt(public_key, fpin, fpout, verbose);
+        ret_status = rsa_encrypt(public_key, fpin, fpout, verbose);
     else
-        rsa_decrypt(private_key, fpin, fpout, verbose);
+        ret_status = rsa_decrypt(private_key, fpin, fpout, verbose);
 
     // Close file pointers if they point to an actual file
     if (fpin != stdin) fclose(fpin);
     if (fpout != stdout) fclose(fpout);
 
-    return EXIT_SUCCESS;
+    // Depending on status returned from rsa_encrypt() or rsa_decrypt(), exit with different exit codes
+    return (ret_status == -1) ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
 int rsa_encrypt(RSA* public_key, FILE* infile, FILE* outfile, const int verbose) {
