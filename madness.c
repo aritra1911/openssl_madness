@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <getopt.h>
+#include <errno.h>
 #include <openssl/pem.h>
 #include <openssl/rsa.h>
 #include <openssl/err.h>
@@ -96,7 +98,7 @@ int main(int argc, char* argv[]) {
                 return EXIT_SUCCESS;
 
             case '?': break;
-            default: return 1;
+            default: return EXIT_FAILURE;
         }
     }
 
@@ -124,7 +126,15 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
-    fp = fopen(key_filename, "r");
+    // Try to open given key file
+    errno = 0;  // Reset errno
+    if (!(fp = fopen(key_filename, "r"))) {
+        // On failure, print error & exit
+        fprintf(stderr, "keyfile(%s) : %s\n", key_filename, strerror(errno));
+        return EXIT_FAILURE;
+    }
+
+    // Fetch key from PEM formattted key in key file
     if (!decrypt) {
         if (!PEM_read_RSA_PUBKEY(fp, &public_key, NULL, NULL)) {
             fprintf(stderr, "Not a valid public key!!!\n");
@@ -147,23 +157,43 @@ int main(int argc, char* argv[]) {
 
         if (verbose) printf("RSA %d\n", RSA_bits(private_key));
     }
-    fclose(fp);
+    fclose(fp);  // Close key file
 
+    // Get input file pointer
     if (!input_filename || input_filename[0] == '-')
         fpin = stdin;
-    else
-        fpin = fopen(input_filename, "r");
 
+    else {  // Try to open given input file for reading
+
+        errno = 0;  // Reset errno
+        if (!(fpin = fopen(input_filename, "r"))) {
+            // On failure, print error & exit
+            fprintf(stderr, "infile(%s) : %s\n", input_filename, strerror(errno));
+            return EXIT_FAILURE;
+        }
+    }
+
+    // Get output file pointer
     if (!output_filename || output_filename[0] == '-')
         fpout = stdout;
-    else
-        fpout = fopen(output_filename, "w");
+
+    else {  // Try to open given output file for writing
+
+        errno = 0;  // Reset errno
+        if (!(fpout = fopen(output_filename, "w"))) {
+            // On failure, print error & exit
+            fprintf(stderr, "outfile(%s) : %s\n", output_filename, strerror(errno));
+            if (fpin != stdin) fclose(fpin);
+            return EXIT_FAILURE;
+        }
+    }
 
     if (!decrypt)
         rsa_encrypt(public_key, fpin, fpout, verbose);
     else
         rsa_decrypt(private_key, fpin, fpout, verbose);
 
+    // Close file pointers if they point to an actual file
     if (fpin != stdin) fclose(fpin);
     if (fpout != stdout) fclose(fpout);
 

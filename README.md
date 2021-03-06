@@ -45,7 +45,11 @@ RSA Encryption / Decryption Tool using OpenSSL API
     - RSA\_SIZE(3)
     - PEM\_READ\_BIO\_PRIVATEKEY(3)
     - RSA\_PUBLIC\_ENCRYPT(3)
-    - ERR_PRINT_ERRORS(3)
+    - ERR\_PRINT\_ERRORS(3)
+    - FOPEN(3P)
     - FREAD(3P)
     - FWRITE(3P)
+    - GETOPT(3)
+    - ERRNO(3P)
+    - STRERROR(3P)
 3.  https://false.ekta.is/2011/08/openssl-pem\_read\_rsa\_pubkey-vs-pem\_read\_rsapublickey/
