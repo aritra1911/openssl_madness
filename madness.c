@@ -126,10 +126,25 @@ int main(int argc, char* argv[]) {
 
     fp = fopen(key_filename, "r");
     if (!decrypt) {
-        PEM_read_RSA_PUBKEY(fp, &public_key, NULL, NULL);
+        if (!PEM_read_RSA_PUBKEY(fp, &public_key, NULL, NULL)) {
+            fprintf(stderr, "Not a valid public key!!!\n");
+            putchar('\n');
+            print_usage(argv[0]);
+            fclose(fp);
+            return EXIT_FAILURE;
+        }
+
         if (verbose) printf("RSA %d\n", RSA_bits(public_key));
+
     } else {
-        PEM_read_RSAPrivateKey(fp, &private_key, NULL, NULL);
+        if (!PEM_read_RSAPrivateKey(fp, &private_key, NULL, NULL)) {
+            fprintf(stderr, "Not a valid private key!!!\n");
+            putchar('\n');
+            print_usage(argv[0]);
+            fclose(fp);
+            return EXIT_FAILURE;
+        }
+
         if (verbose) printf("RSA %d\n", RSA_bits(private_key));
     }
     fclose(fp);
